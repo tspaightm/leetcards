@@ -1,0 +1,90 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+*.DS_Store
+*.orig
+*.lock
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.hprof
+*.tmp
+*.temp
+*.log
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub/
+.pub-cache/
+/build/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+
+# Generated files
+android/local.properties
+**/GeneratedPluginRegistrant.*
+**/Generated.xcconfig
+**/Flutter/Generated.xcconfig
+
+# CocoaPods
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Podfile.lock
+
+# Xcode
+ios/Runner.xcworkspace/
+ios/Runner/DerivedData/
+ios/Runner.xcodeproj/project.xcworkspace/
+*.xcuserstate
+*.xcworkspace
+*.xcuserdata/
+*.moved-aside
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+**/gradle-app.setting
+**/local.properties
+.gradle/
+/captures/
+outputs/
+
+# Build outputs
+**/build/
+**/outputs/
+**/generated/
+
+# Firebase and service files
+.firebase/
+.firebaserc
+
+# Node / npm / Yarn
+node_modules/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Misc editors
+*.sublime-workspace
+*.sublime-project
+*.idea/
+*.vscode/
+
+# OS Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Optional: ignore pubspec lock for published packages, but keep for apps
+# pubspec.lock
