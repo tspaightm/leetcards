@@ -87,7 +87,16 @@ class _ProfileMenuContentState extends State<_ProfileMenuContent>
                     value: isDark,
                     onChanged: (_) {},
                     activeColor: Colors.orange,
-                    inactiveThumbColor: Colors.grey[300])),
+                    inactiveThumbColor: Colors.white,
+                    inactiveTrackColor: Colors.grey[400],
+                    thumbIcon: WidgetStateProperty.resolveWith(
+                      (states) => states.contains(WidgetState.selected)
+                        ? null
+                        : const Icon(Icons.circle, color: Colors.transparent)),
+                    trackOutlineColor: WidgetStateProperty.resolveWith(
+                      (states) => states.contains(WidgetState.selected)
+                        ? Colors.transparent
+                        : Colors.grey[400]))),
               ])))),
         Divider(height: 1, color: isDark ? Colors.grey[700] : Colors.grey.shade300),
         InkWell(
