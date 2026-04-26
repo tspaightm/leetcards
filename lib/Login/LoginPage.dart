@@ -55,43 +55,26 @@ class LoginPage extends StatelessWidget
 
                   const Spacer(flex: 3),
 
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _signIn(context, _authService.signInWithGoogle),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
-                        elevation: 1,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey.shade300))),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.g_mobiledata, size: 28, color: Colors.blue),
-                          SizedBox(width: 10),
-                          Text('Continue with Google', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                        ]))),
+                  _buildSignInButton(
+                    context: context,
+                    isDark: isDark,
+                    onPressed: () => _signIn(context, _authService.signInWithGoogle),
+                    icon: Image.asset('assets/images/google_g.png', width: 20, height: 20),
+                    label: 'Continue with Google'),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _signIn(context, _authService.signInWithGitHub),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF24292E),
-                        foregroundColor: Colors.white,
-                        elevation: 1,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          FaIcon(FontAwesomeIcons.github, size: 20),
-                          SizedBox(width: 10),
-                          Text('Continue with GitHub', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                        ]))),
+                  _buildSignInButton(
+                    context: context,
+                    isDark: isDark,
+                    onPressed: () => _signIn(context, _authService.signInWithApple),
+                    icon: FaIcon(FontAwesomeIcons.apple, size: 22, color: isDark ? Colors.white : Colors.black),
+                    label: 'Continue with Apple'),
+                  const SizedBox(height: 12),
+                  _buildSignInButton(
+                    context: context,
+                    isDark: isDark,
+                    onPressed: () => _signIn(context, _authService.signInWithGitHub),
+                    icon: FaIcon(FontAwesomeIcons.github, size: 20, color: isDark ? Colors.white : Colors.black),
+                    label: 'Continue with GitHub'),
                   const SizedBox(height: 12),
                   Text(
                     'Free to start. No credit card required.',
@@ -118,30 +101,64 @@ class LoginPage extends StatelessWidget
     );
   }
 
-  Future<void> _signIn(BuildContext context, Future<dynamic> Function() signInMethod) async
+  Future<void> _signIn(BuildContext context, Future<SignInResult> Function() signInMethod) async
   {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
-    try
+
+    final result = await signInMethod();
+
+    switch (result)
     {
-      final userCred = await signInMethod();
-      if (userCred == null)
-      {
-        messenger.showSnackBar(
-          const SnackBar(content: Text("Sign-in failed or cancelled.")));
-      }
-      else if (navigator.canPop())
-      {
+      case SignInSuccess():
         // LoginPage was pushed on top of HomeScreen (e.g. from a locked card).
         // Pop back — the StreamBuilder handles navigation when it's the root route.
-        navigator.pop();
-      }
+        if (navigator.canPop()) navigator.pop();
+      case SignInCancelled():
+        // Silent — user closed the popup themselves.
+        break;
+      case SignInConflict():
+        messenger.showSnackBar(
+          const SnackBar(
+            duration: Duration(seconds: 6),
+            content: Text(
+              'An account with this email already exists. Please sign in with the method you used originally.')));
+      case SignInError():
+        messenger.showSnackBar(
+          const SnackBar(content: Text("Error signing in. Please try again.")));
     }
-    catch (e)
-    {
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Error signing in. Please try again.")));
-    }
+  }
+
+  Widget _buildSignInButton({
+    required BuildContext context,
+    required bool isDark,
+    required VoidCallback onPressed,
+    required Widget icon,
+    required String label,
+  })
+  {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          foregroundColor: isDark ? Colors.white : Colors.black87,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: isDark ? Colors.grey[800]! : Colors.grey.shade300,
+              width: 1))),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(width: 22, height: 22, child: Center(child: icon)),
+            const SizedBox(width: 12),
+            Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          ])));
   }
 
   Widget _featureRow(IconData icon, String title, String description, bool isDark)

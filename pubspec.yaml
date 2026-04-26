@@ -46,6 +46,8 @@ dependencies:
   firebase_remote_config: ^5.4.0
   google_fonts: ^6.3.2
   font_awesome_flutter: ^10.8.0
+  sign_in_with_apple: ^6.1.0
+  crypto: ^3.0.3
 
 dev_dependencies:
   flutter_test:

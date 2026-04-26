@@ -1,15 +1,62 @@
 import "package:leetcards/Data/DatabaseService.dart";
 
+import "dart:convert";
+import "dart:math";
+
 import "package:firebase_auth/firebase_auth.dart";
 import "package:google_sign_in/google_sign_in.dart";
 import "package:flutter/foundation.dart" show kIsWeb;
+import "package:sign_in_with_apple/sign_in_with_apple.dart";
+import "package:crypto/crypto.dart";
+
+// Discriminated result for sign-in attempts so the UI can render each case
+// without inspecting raw exceptions.
+sealed class SignInResult
+{
+  const SignInResult();
+}
+
+class SignInSuccess extends SignInResult
+{
+  final UserCredential credential;
+  const SignInSuccess(this.credential);
+}
+
+class SignInCancelled extends SignInResult
+{
+  const SignInCancelled();
+}
+
+class SignInConflict extends SignInResult
+{
+  final String email;
+  final String attemptedProviderId;
+  const SignInConflict({required this.email, required this.attemptedProviderId});
+}
+
+class SignInError extends SignInResult
+{
+  final Object error;
+  const SignInError(this.error);
+}
 
 class AuthService
 {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<UserCredential?> signInWithGoogle() => _signIn('google.com');
-  Future<UserCredential?> signInWithGitHub() => _signIn('github.com');
+  // Holds the credential from a sign-in that was rejected because the email is
+  // already registered with a different provider. If the user successfully
+  // signs in with the original provider during the same app session and the
+  // email matches, we link this credential transparently.
+  static AuthCredential? _pendingCredential;
+  static String? _pendingEmail;
+
+  static bool get hasPendingCredential => _pendingCredential != null;
+  static String? get pendingEmail => _pendingEmail;
+
+  Future<SignInResult> signInWithGoogle() => _signIn('google.com');
+  Future<SignInResult> signInWithGitHub() => _signIn('github.com');
+  Future<SignInResult> signInWithApple()  => _signIn('apple.com');
 
   Future<void> signOut() async
   {
@@ -76,25 +123,80 @@ class AuthService
           await user.reauthenticateWithProvider(provider);
         }
         return true;
+      case 'apple.com':
+        if (kIsWeb)
+        {
+          final provider = AppleAuthProvider()
+            ..addScope('email')
+            ..addScope('name');
+          await user.reauthenticateWithPopup(provider);
+          return true;
+        }
+        final cred = await _getAppleCredentialNative();
+        if (cred == null) return false;
+        await user.reauthenticateWithCredential(cred);
+        return true;
       default:
         return false;
     }
   }
 
-  Future<UserCredential?> _signIn(String providerId) async
+  Future<SignInResult> _signIn(String providerId) async
   {
     try
     {
-      final cred = await _providerSignIn(providerId);
-      if (cred != null) DatabaseService.clearGuestProgress();
-      return cred;
+      final userCred = await _providerSignIn(providerId);
+      if (userCred == null) return const SignInCancelled();
+
+      DatabaseService.clearGuestProgress();
+
+      await _tryLinkPending(userCred.user);
+      _clearPending();
+
+      return SignInSuccess(userCred);
     }
     on FirebaseAuthException catch (e)
     {
-      return e.code == 'account-exists-with-different-credential'
-        ? _linkToExistingAccount(e)
-        : null;
+      if (e.code == 'account-exists-with-different-credential')
+      {
+        final email = e.email ?? '';
+        if (e.credential != null && email.isNotEmpty)
+        {
+          _pendingCredential = e.credential;
+          _pendingEmail = email;
+        }
+        return SignInConflict(email: email, attemptedProviderId: providerId);
+      }
+      return SignInError(e);
     }
+    catch (e)
+    {
+      return SignInError(e);
+    }
+  }
+
+  // If a previous attempt left a pending credential and the user we just signed
+  // in as has the same email, attach it so both providers work going forward.
+  // Failures are swallowed — silent best-effort.
+  Future<void> _tryLinkPending(User? user) async
+  {
+    if (user == null) return;
+    final pending = _pendingCredential;
+    final pendingEmail = _pendingEmail;
+    if (pending == null || pendingEmail == null) return;
+    if (user.email != pendingEmail) return;
+
+    try
+    {
+      await user.linkWithCredential(pending);
+    }
+    catch (_) { }
+  }
+
+  void _clearPending()
+  {
+    _pendingCredential = null;
+    _pendingEmail = null;
   }
 
   Future<UserCredential?> _providerSignIn(String providerId) async
@@ -115,24 +217,58 @@ class AuthService
         return kIsWeb
           ? _auth.signInWithPopup(provider)
           : _auth.signInWithProvider(provider);
+      case 'apple.com':
+        if (kIsWeb)
+        {
+          final provider = AppleAuthProvider()
+            ..addScope('email')
+            ..addScope('name');
+          return _auth.signInWithPopup(provider);
+        }
+        final cred = await _getAppleCredentialNative();
+        if (cred == null) return null;
+        return _auth.signInWithCredential(cred);
       default:
         return null;
     }
   }
 
-  // The email already belongs to another provider. Sign in with that provider,
-  // then link the pending credential so both work going forward.
-  Future<UserCredential?> _linkToExistingAccount(FirebaseAuthException e) async
+  // Apple requires a SHA256-hashed nonce in the ID token request and the raw
+  // nonce when constructing the Firebase credential — Firebase verifies the
+  // hash matches to prevent replay attacks.
+  Future<OAuthCredential?> _getAppleCredentialNative() async
   {
-    final pending = e.credential;
-    if (pending == null) return null;
+    final rawNonce = _generateNonce();
+    final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
 
-    final existingProviderId = pending.providerId == 'github.com' ? 'google.com' : 'github.com';
-    final existing = await _providerSignIn(existingProviderId);
-    if (existing == null) return null;
+    final AuthorizationCredentialAppleID apple;
+    try
+    {
+      apple = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce);
+    }
+    on SignInWithAppleAuthorizationException catch (e)
+    {
+      if (e.code == AuthorizationErrorCode.canceled) return null;
+      rethrow;
+    }
 
-    await existing.user?.linkWithCredential(pending);
-    DatabaseService.clearGuestProgress();
-    return existing;
+    final idToken = apple.identityToken;
+    if (idToken == null) return null;
+
+    return OAuthProvider('apple.com').credential(
+      idToken: idToken,
+      rawNonce: rawNonce);
+  }
+
+  String _generateNonce([int length = 32])
+  {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => chars[random.nextInt(chars.length)]).join();
   }
 }
