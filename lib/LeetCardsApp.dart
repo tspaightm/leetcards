@@ -2,6 +2,8 @@ import "package:leetcards/Common/Constants.dart";
 import "package:leetcards/HomeScreen.dart";
 import "package:leetcards/Login/LoginPage.dart";
 
+import "dart:async";
+
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
@@ -18,7 +20,9 @@ class LeetCardsAppState extends State<LeetCardsApp>
 {
   bool m_IsDarkMode = true;
   bool m_GuestMode = false;
-  late final Stream<User?> _authStream;
+  User? _currentUser;
+  bool _authInitialized = false;
+  late final StreamSubscription<User?> _authSub;
   late final ThemeData _lightTheme;
   late final ThemeData _darkTheme;
 
@@ -26,7 +30,21 @@ class LeetCardsAppState extends State<LeetCardsApp>
   void initState()
   {
     super.initState();
-    _authStream = FirebaseAuth.instance.authStateChanges();
+    // Single subscription owns both auth state and the dark-mode-on-signout
+    // flip. Updating both in the same setState avoids the cross-State race we
+    // had with StreamBuilder.
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (!mounted) return;
+      setState(()
+      {
+        _currentUser = user;
+        _authInitialized = true;
+        if (user == null && !m_GuestMode && !m_IsDarkMode)
+        {
+          m_IsDarkMode = true;
+        }
+      });
+    });
     _lightTheme = ThemeData(
       useMaterial3: true,
       colorSchemeSeed: AppColors.primary,
@@ -53,6 +71,13 @@ class LeetCardsAppState extends State<LeetCardsApp>
       elevatedButtonTheme: ElevatedButtonThemeData(style: ButtonStyle(animationDuration: Duration.zero)),
       outlinedButtonTheme: OutlinedButtonThemeData(style: ButtonStyle(animationDuration: Duration.zero)),
       textButtonTheme: TextButtonThemeData(style: ButtonStyle(animationDuration: Duration.zero)));
+  }
+
+  @override
+  void dispose()
+  {
+    _authSub.cancel();
+    super.dispose();
   }
 
   void ToggleTheme()
@@ -108,6 +133,22 @@ class LeetCardsAppState extends State<LeetCardsApp>
     );
   }
 
+  Widget _buildHome()
+  {
+    if (!_authInitialized)
+    {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_currentUser != null || m_GuestMode)
+    {
+      return HomeScreen(
+        m_IsDarkMode: m_IsDarkMode,
+        m_OnThemeToggle: ToggleTheme,
+        m_OnSignOut: _exitGuestMode);
+    }
+    return LoginPage(m_OnGuestContinue: _enterGuestMode);
+  }
+
   @override
   Widget build(BuildContext context)
   {
@@ -120,26 +161,7 @@ class LeetCardsAppState extends State<LeetCardsApp>
       // The active theme is injected synchronously via builder below.
       theme: _lightTheme,
       builder: (context, child) => Theme(data: activeTheme, child: child!),
-      home: StreamBuilder<User?>(
-        stream: _authStream,
-        builder: (context, snapshot)
-        {
-          if (snapshot.connectionState == ConnectionState.waiting)
-          {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
-          }
-
-          if (snapshot.hasData || m_GuestMode)
-          {
-            return HomeScreen(
-              m_IsDarkMode: m_IsDarkMode,
-              m_OnThemeToggle: ToggleTheme,
-              m_OnSignOut: _exitGuestMode);
-          }
-
-          return LoginPage(m_OnGuestContinue: _enterGuestMode);
-        }),
+      home: _buildHome(),
     );
   }
 }
