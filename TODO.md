@@ -13,6 +13,19 @@ Cross-cutting tasks that don't have a natural home in code. For code-local remin
     - `$(SRCROOT)/$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)`
   - Then `cd ios && pod install`.
 
+## Firestore
+
+- [ ] **Add security rule for `feedback` collection.** Currently the SDK call will fail until rules permit it. In Firebase Console → Firestore → Rules, add inside `match /databases/{database}/documents`:
+  ```
+  match /feedback/{id} {
+    allow create: if request.resource.data.message is string
+                  && request.resource.data.message.size() > 0
+                  && request.resource.data.message.size() < 5000;
+    allow read, update, delete: if false;
+  }
+  ```
+  Allows anyone (signed in or guest) to submit, with a size guard to prevent abuse. Reads only from the Console, not the app.
+
 ## Crashlytics
 
 - [ ] **Validate Crashlytics end-to-end.** The setup is wired up but unverified — Crashlytics is silent until a real crash, so we don't know reports actually flow through.

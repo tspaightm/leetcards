@@ -1,6 +1,7 @@
 import "package:leetcards/Common/Constants.dart";
 import "package:leetcards/Flashcards/AlgorithmFlashcardGame.dart";
 import "package:leetcards/Flashcards/FundamentalFlashcardGame.dart";
+import "package:leetcards/Feedback/FeedbackPage.dart";
 import "package:leetcards/Login/AuthService.dart";
 import "package:leetcards/Login/LoginPage.dart";
 import "package:leetcards/Data/DatabaseService.dart";
@@ -98,6 +99,15 @@ class _ProfileMenuContentState extends State<_ProfileMenuContent>
                         ? Colors.transparent
                         : Colors.grey[400]))),
               ])))),
+        InkWell(
+          onTap: () => Navigator.pop(context, 'feedback'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              height: kMinInteractiveDimension,
+              child: _menuRow(
+                icon: Icon(Icons.chat_bubble_outline, size: 20, color: iconColor),
+                label: 'Send feedback')))),
         Divider(height: 1, color: isDark ? Colors.grey[700] : Colors.grey.shade300),
         InkWell(
           onTap: () async {
@@ -321,6 +331,25 @@ class HomeScreenState extends State<HomeScreen>
                 _helpRow(Icons.code, 'Algorithms', 'Coding prompts to sharpen your problem-solving.'),
                 const SizedBox(height: 12),
                 _helpRow(Icons.bar_chart, 'Track progress', 'See how much you\'ve completed across difficulties.'),
+                const SizedBox(height: 20),
+                Divider(height: 1, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[700] : Colors.grey.shade300),
+                const SizedBox(height: 12),
+                InkWell(
+                  onTap: ()
+                  {
+                    Navigator.of(context).pop();
+                    Navigator.of(this.context).push(
+                      MaterialPageRoute(builder: (_) => const FeedbackPage()));
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    child: Row(
+                      children: [
+                        Icon(Icons.chat_bubble_outline, size: 20, color: AppColors.primary),
+                        const SizedBox(width: 12),
+                        const Text('Send feedback', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ]))),
               ],
             ),
           ),
@@ -365,6 +394,8 @@ class HomeScreenState extends State<HomeScreen>
           case 'account':
             await Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()));
             if (mounted) loadProgress();
+          case 'feedback':
+            await Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackPage()));
         }
       },
       itemBuilder: (context) => [
