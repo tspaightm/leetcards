@@ -176,7 +176,7 @@ class AuthService
 
       return SignInSuccess(userCred);
     }
-    on FirebaseAuthException catch (e)
+    on FirebaseAuthException catch (e, stack)
     {
       if (e.code == 'account-exists-with-different-credential')
       {
@@ -188,10 +188,20 @@ class AuthService
         }
         return SignInConflict(email: email, attemptedProviderId: providerId);
       }
+      await FirebaseCrashlytics.instance.recordError(
+        e, stack,
+        reason: 'sign-in failed',
+        information: ['provider: $providerId', 'code: ${e.code}'],
+        fatal: false);
       return SignInError(e);
     }
-    catch (e)
+    catch (e, stack)
     {
+      await FirebaseCrashlytics.instance.recordError(
+        e, stack,
+        reason: 'sign-in failed',
+        information: ['provider: $providerId'],
+        fatal: false);
       return SignInError(e);
     }
   }
@@ -211,7 +221,13 @@ class AuthService
     {
       await user.linkWithCredential(pending);
     }
-    catch (_) { }
+    catch (e, stack)
+    {
+      await FirebaseCrashlytics.instance.recordError(
+        e, stack,
+        reason: 'pending credential link failed',
+        fatal: false);
+    }
   }
 
   void _clearPending()
