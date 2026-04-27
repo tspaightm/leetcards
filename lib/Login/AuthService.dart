@@ -5,6 +5,7 @@ import "dart:math";
 
 import "package:firebase_analytics/firebase_analytics.dart";
 import "package:firebase_auth/firebase_auth.dart";
+import "package:firebase_crashlytics/firebase_crashlytics.dart";
 import "package:google_sign_in/google_sign_in.dart";
 import "package:flutter/foundation.dart" show kIsWeb;
 import "package:sign_in_with_apple/sign_in_with_apple.dart";
@@ -63,6 +64,7 @@ class AuthService
   {
     await DatabaseService.onSignOut();
     await _auth.signOut();
+    await FirebaseCrashlytics.instance.setUserIdentifier('');
     if (!kIsWeb) await GoogleSignIn().signOut();
   }
 
@@ -153,6 +155,12 @@ class AuthService
 
       await _tryLinkPending(userCred.user);
       _clearPending();
+
+      final uid = userCred.user?.uid;
+      if (uid != null)
+      {
+        await FirebaseCrashlytics.instance.setUserIdentifier(uid);
+      }
 
       // First-time vs returning auth — both share the provider id as method.
       final isNew = userCred.additionalUserInfo?.isNewUser ?? false;

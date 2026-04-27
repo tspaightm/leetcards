@@ -49,6 +49,7 @@ dependencies:
   sign_in_with_apple: ^6.1.0
   crypto: ^3.0.3
   firebase_analytics: ^11.3.0
+  firebase_crashlytics: ^4.3.0
 
 dev_dependencies:
   flutter_test:
