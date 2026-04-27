@@ -7,64 +7,12 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:681586210729:android:b0c18d34969fabb03076b8",
+        "mobilesdk_app_id": "1:681586210729:android:6d6c68ee1153dcb63076b8",
         "android_client_info": {
-          "package_name": "com.example.leetcards"
+          "package_name": "io.leetcards.app"
         }
       },
       "oauth_client": [
-        {
-          "client_id": "681586210729-ni5o2a60cd4ao20a5f22i6gmv2iu8to7.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.leetcards",
-            "certificate_hash": "cad1b0ea1a1e06df9b239721eccceb5419e9ed6d"
-          }
-        },
-        {
-          "client_id": "681586210729-t7lu3hp8nlv3ce9ml60v419sa1lqg3m3.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBrIkl-oQyMJtZLPnkCsfxNmLXf4VPEiV8"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "681586210729-t7lu3hp8nlv3ce9ml60v419sa1lqg3m3.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "681586210729-5ati1ts4o68vi8l8ogk64lqivrrsfiin.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.leetcards"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:681586210729:android:9f45a63a8f42812f3076b8",
-        "android_client_info": {
-          "package_name": "com.google.firebase.presents.demo"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "681586210729-1eu4ahfc2b7ktrk83br635ll5uif30q1.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.google.firebase.presents.demo",
-            "certificate_hash": "157e9da525ba5e11bc0a4e9f7453b11b67161bd1"
-          }
-        },
         {
           "client_id": "681586210729-t7lu3hp8nlv3ce9ml60v419sa1lqg3m3.apps.googleusercontent.com",
           "client_type": 3

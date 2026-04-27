@@ -4,6 +4,7 @@ import "package:leetcards/Login/LoginPage.dart";
 
 import "dart:async";
 
+import "package:firebase_analytics/firebase_analytics.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:flutter/material.dart";
 import "package:google_fonts/google_fonts.dart";
@@ -90,6 +91,7 @@ class LeetCardsAppState extends State<LeetCardsApp>
 
   void _enterGuestMode()
   {
+    FirebaseAnalytics.instance.logEvent(name: 'guest_continue');
     setState(()
     {
       m_GuestMode = true;
@@ -161,6 +163,9 @@ class LeetCardsAppState extends State<LeetCardsApp>
       // The active theme is injected synchronously via builder below.
       theme: _lightTheme,
       builder: (context, child) => Theme(data: activeTheme, child: child!),
+      navigatorObservers: [
+        FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+      ],
       home: _buildHome(),
     );
   }

@@ -3,6 +3,7 @@ import 'package:leetcards/Common/Constants.dart';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 
@@ -147,11 +148,21 @@ class DatabaseService
     final user = m_Auth.currentUser;
     if (user == null) return;
 
+    final previous = _currentTier;
     await m_Firestore
       .collection(m_UsersCollectionName)
       .doc(user.uid)
       .set({'tier': tier.name}, SetOptions(merge: true));
     // Listener will fire with the new value; no manual cache update needed.
+
+    final analytics = FirebaseAnalytics.instance;
+    analytics.logEvent(
+      name: 'tier_change',
+      parameters: {
+        'from_tier': previous.name,
+        'to_tier': tier.name,
+      });
+    analytics.setUserProperty(name: 'user_tier', value: tier.name);
   }
 
   // In-memory progress for guest sessions — cleared on app restart
@@ -183,6 +194,7 @@ class DatabaseService
     if (user == null)
     {
       _guestFundamentals.add(fundamentalId);
+      _logCompletion(type: 'fundamental', cardId: fundamentalId, isGuest: true);
       return;
     }
     await _userDoc(user.uid).set(
@@ -190,6 +202,7 @@ class DatabaseService
       SetOptions(merge: true));
     _validateProgressCache(user.uid);
     _cachedCompletedFundamentals?.add(fundamentalId);
+    _logCompletion(type: 'fundamental', cardId: fundamentalId, isGuest: false);
   }
 
   static Future<void> saveAlgorithmCompletion(String algorithmId) async
@@ -198,6 +211,7 @@ class DatabaseService
     if (user == null)
     {
       _guestAlgorithms.add(algorithmId);
+      _logCompletion(type: 'algorithm', cardId: algorithmId, isGuest: true);
       return;
     }
     await _userDoc(user.uid).set(
@@ -205,6 +219,22 @@ class DatabaseService
       SetOptions(merge: true));
     _validateProgressCache(user.uid);
     _cachedCompletedAlgorithms?.add(algorithmId);
+    _logCompletion(type: 'algorithm', cardId: algorithmId, isGuest: false);
+  }
+
+  static void _logCompletion({
+    required String type,
+    required String cardId,
+    required bool isGuest,
+  })
+  {
+    FirebaseAnalytics.instance.logEvent(
+      name: 'flashcard_completed',
+      parameters: {
+        'card_type': type,
+        'card_id': cardId,
+        'is_guest': isGuest ? 1 : 0,
+      });
   }
 
   // Both completed-ID sets now live as arrays on the user doc. One read fills

@@ -3,6 +3,7 @@ import "package:leetcards/Data/DatabaseService.dart";
 import "dart:convert";
 import "dart:math";
 
+import "package:firebase_analytics/firebase_analytics.dart";
 import "package:firebase_auth/firebase_auth.dart";
 import "package:google_sign_in/google_sign_in.dart";
 import "package:flutter/foundation.dart" show kIsWeb;
@@ -152,6 +153,18 @@ class AuthService
 
       await _tryLinkPending(userCred.user);
       _clearPending();
+
+      // First-time vs returning auth — both share the provider id as method.
+      final isNew = userCred.additionalUserInfo?.isNewUser ?? false;
+      final analytics = FirebaseAnalytics.instance;
+      if (isNew)
+      {
+        await analytics.logSignUp(signUpMethod: providerId);
+      }
+      else
+      {
+        await analytics.logLogin(loginMethod: providerId);
+      }
 
       return SignInSuccess(userCred);
     }

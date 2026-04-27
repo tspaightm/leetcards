@@ -1,6 +1,6 @@
 import "package:leetcards/Data/RemoteConfigService.dart";
 import "package:leetcards/LeetCardsApp.dart";
-import "package:leetcards/Login/FirebaseOptions.dart";
+import "package:leetcards/firebase_options.dart";
 
 import "package:firebase_core/firebase_core.dart";
 import "package:flutter/material.dart";

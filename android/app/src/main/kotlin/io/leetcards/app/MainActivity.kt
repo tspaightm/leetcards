@@ -1,4 +1,4 @@
-package com.example.leetcards
+package io.leetcards.app
 
 import io.flutter.embedding.android.FlutterActivity
 
