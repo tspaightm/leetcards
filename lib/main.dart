@@ -1,3 +1,4 @@
+import "package:leetcards/Data/PlatformSupport.dart";
 import "package:leetcards/Data/RemoteConfigService.dart";
 import "package:leetcards/LeetCardsApp.dart";
 import "package:leetcards/firebase_options.dart";
@@ -15,14 +16,17 @@ Future<void> main() async
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform);
 
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
-
-  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
-  PlatformDispatcher.instance.onError = (error, stack)
+  if (crashlyticsSupported)
   {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack)
+    {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
 
   await RemoteConfigService.initialize();
 

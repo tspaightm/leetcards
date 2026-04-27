@@ -1,4 +1,5 @@
 import "package:leetcards/Data/DatabaseService.dart";
+import "package:leetcards/Data/PlatformSupport.dart";
 
 import "dart:convert";
 import "dart:math";
@@ -64,7 +65,10 @@ class AuthService
   {
     await DatabaseService.onSignOut();
     await _auth.signOut();
-    await FirebaseCrashlytics.instance.setUserIdentifier('');
+    if (crashlyticsSupported)
+    {
+      await FirebaseCrashlytics.instance.setUserIdentifier('');
+    }
     if (!kIsWeb) await GoogleSignIn().signOut();
   }
 
@@ -157,7 +161,7 @@ class AuthService
       _clearPending();
 
       final uid = userCred.user?.uid;
-      if (uid != null)
+      if (uid != null && crashlyticsSupported)
       {
         await FirebaseCrashlytics.instance.setUserIdentifier(uid);
       }
@@ -188,20 +192,26 @@ class AuthService
         }
         return SignInConflict(email: email, attemptedProviderId: providerId);
       }
-      await FirebaseCrashlytics.instance.recordError(
-        e, stack,
-        reason: 'sign-in failed',
-        information: ['provider: $providerId', 'code: ${e.code}'],
-        fatal: false);
+      if (crashlyticsSupported)
+      {
+        await FirebaseCrashlytics.instance.recordError(
+          e, stack,
+          reason: 'sign-in failed',
+          information: ['provider: $providerId', 'code: ${e.code}'],
+          fatal: false);
+      }
       return SignInError(e);
     }
     catch (e, stack)
     {
-      await FirebaseCrashlytics.instance.recordError(
-        e, stack,
-        reason: 'sign-in failed',
-        information: ['provider: $providerId'],
-        fatal: false);
+      if (crashlyticsSupported)
+      {
+        await FirebaseCrashlytics.instance.recordError(
+          e, stack,
+          reason: 'sign-in failed',
+          information: ['provider: $providerId'],
+          fatal: false);
+      }
       return SignInError(e);
     }
   }
@@ -223,10 +233,13 @@ class AuthService
     }
     catch (e, stack)
     {
-      await FirebaseCrashlytics.instance.recordError(
-        e, stack,
-        reason: 'pending credential link failed',
-        fatal: false);
+      if (crashlyticsSupported)
+      {
+        await FirebaseCrashlytics.instance.recordError(
+          e, stack,
+          reason: 'pending credential link failed',
+          fatal: false);
+      }
     }
   }
 
