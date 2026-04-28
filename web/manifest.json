@@ -1,11 +1,11 @@
 {
-    "name": "leetcards",
-    "short_name": "leetcards",
+    "name": "LeetCards",
+    "short_name": "LeetCards",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Flashcard-based practice for coding interviews — algorithm problems and computer science fundamentals.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

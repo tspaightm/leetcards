@@ -39,6 +39,14 @@ Cross-cutting tasks that don't have a natural home in code. For code-local remin
   - After first upload: Play Console → Setup → App signing → copy the **App signing key certificate** SHA-1.
   - Firebase Console → Project Settings → Your apps → Android → Add fingerprint → paste it, save, redownload `google-services.json`, ship next update.
 
+## Web
+
+- [ ] **Generate properly sized PWA icons before shipping web.** All four icon slots in [web/icons/](web/icons/) currently hold the same 109 KB `app_icon.png` copy. Works in browsers (they scale), but suboptimal:
+  - Icon-192 / Icon-512 should be exact-sized PNGs for performance and crispness.
+  - Icon-maskable-192 / Icon-maskable-512 need ~20% safe-area padding so OS masks (circle/squircle on Android home screens) don't clip the logo.
+  - Easy fix: add `web: true` to the `flutter_launcher_icons` block in [pubspec.yaml](pubspec.yaml) and run `flutter pub run flutter_launcher_icons` — same tool already configured for Android/iOS.
+  - Also worth a fresh look at `web/favicon.png` — 109 KB is large for a favicon (typical is 5–10 KB at 32×32 or 64×64).
+
 ## Analytics
 
 - [ ] Register custom event parameters in Firebase Console → Analytics → Custom Definitions so they're queryable in reports:

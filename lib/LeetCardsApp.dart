@@ -157,7 +157,7 @@ class LeetCardsAppState extends State<LeetCardsApp>
     final ThemeData activeTheme = m_IsDarkMode ? _darkTheme : _lightTheme;
 
     return MaterialApp(
-      title: "LeetCards App",
+      title: "LeetCards",
       debugShowCheckedModeBanner: false,
       // Keep MaterialApp.theme static so AnimatedTheme never fires.
       // The active theme is injected synchronously via builder below.
