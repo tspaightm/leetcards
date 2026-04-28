@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "681586210729-th15ds0hofmmlfo742fic6qtqnq4ut20.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "io.leetcards.app",
+            "certificate_hash": "c34553b2dda216a9ace31740aafc57f421abbaac"
+          }
+        },
+        {
           "client_id": "681586210729-t7lu3hp8nlv3ce9ml60v419sa1lqg3m3.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -60,6 +60,11 @@ android/build/
 /captures/
 outputs/
 
+# Android signing — never commit
+android/key.properties
+*.jks
+*.keystore
+
 # Build outputs
 **/build/
 **/outputs/

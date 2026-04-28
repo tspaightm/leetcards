@@ -1,6 +1,9 @@
 import "package:leetcards/Common/Constants.dart";
 import "package:leetcards/Login/AuthService.dart";
 
+import "dart:io" show Platform;
+
+import "package:flutter/foundation.dart" show kIsWeb;
 import "package:flutter/material.dart";
 import "package:font_awesome_flutter/font_awesome_flutter.dart";
 
@@ -11,6 +14,10 @@ class LoginPage extends StatelessWidget
   const LoginPage({super.key, this.m_OnGuestContinue});
 
   static final AuthService _authService = AuthService();
+
+  // Apple Sign-In on Android requires a separate web auth flow (Service ID +
+  // redirect URI). Skipped for v1 — Android users can still use Google or GitHub.
+  static final bool _showApple = kIsWeb || !Platform.isAndroid;
 
   @override
   Widget build(BuildContext context)
@@ -61,13 +68,15 @@ class LoginPage extends StatelessWidget
                     onPressed: () => _signIn(context, _authService.signInWithGoogle),
                     icon: Image.asset('assets/images/google_g.png', width: 20, height: 20),
                     label: 'Continue with Google'),
-                  const SizedBox(height: 12),
-                  _buildSignInButton(
-                    context: context,
-                    isDark: isDark,
-                    onPressed: () => _signIn(context, _authService.signInWithApple),
-                    icon: FaIcon(FontAwesomeIcons.apple, size: 22, color: isDark ? Colors.white : Colors.black),
-                    label: 'Continue with Apple'),
+                  if (_showApple) ...[
+                    const SizedBox(height: 12),
+                    _buildSignInButton(
+                      context: context,
+                      isDark: isDark,
+                      onPressed: () => _signIn(context, _authService.signInWithApple),
+                      icon: FaIcon(FontAwesomeIcons.apple, size: 22, color: isDark ? Colors.white : Colors.black),
+                      label: 'Continue with Apple'),
+                  ],
                   const SizedBox(height: 12),
                   _buildSignInButton(
                     context: context,
