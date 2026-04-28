@@ -26,14 +26,18 @@ Cross-cutting tasks that don't have a natural home in code. For code-local remin
   ```
   Allows anyone (signed in or guest) to submit, with a size guard to prevent abuse. Reads only from the Console, not the app.
 
-## Crashlytics
+## Auth
 
-- [ ] **Validate Crashlytics end-to-end.** The setup is wired up but unverified — Crashlytics is silent until a real crash, so we don't know reports actually flow through.
-  - Clean rebuild on Android: `flutter clean && flutter run` (Gradle plugin change requires it).
-  - Add a temporary button somewhere that calls `FirebaseCrashlytics.instance.crash();`.
-  - Tap it, then **kill and relaunch the app** (uploads happen on next launch, not at crash time).
-  - Wait 5–10 min, check Firebase Console → Crashlytics for the report.
-  - Remove the test button.
+- [ ] **Enable Apple Sign-In on Android (once Apple Developer account is paid).** Currently hidden on Android via `_showApple` gate in [LoginPage.dart:20](lib/Login/LoginPage.dart#L20). To enable:
+  1. Apple Developer Console: create a **Service ID** (e.g. `io.leetcards.app.web`), enable "Sign in with Apple" on it. Configure Domain `leetcards-5a25d.firebaseapp.com` and Return URL `https://leetcards-5a25d.firebaseapp.com/__/auth/handler`.
+  2. Generate a private key (`.p8`) for Sign in with Apple — note the Key ID and your Team ID.
+  3. Firebase Console → Authentication → Sign-in method → Apple → enable. Paste Service ID, Team ID, Key ID, and `.p8` contents.
+  4. Code: in `_providerSignIn` for `apple.com` ([AuthService.dart:233](lib/Login/AuthService.dart#L233)), branch — iOS/macOS keeps the native `_getAppleCredentialNative` flow; Android uses `_auth.signInWithProvider(AppleAuthProvider())`.
+  5. Flip `_showApple` in [LoginPage.dart:20](lib/Login/LoginPage.dart#L20) to always be true.
+
+- [ ] **Register Play App Signing key SHA-1 in Firebase after first Play Store upload.** Google's Play App Signing re-signs your AAB with a key Google generates. Until you register *that* SHA-1 in Firebase, Google Sign-In and GitHub will fail for users who install from the Play Store (only sideloaded APKs signed with the upload key will work).
+  - After first upload: Play Console → Setup → App signing → copy the **App signing key certificate** SHA-1.
+  - Firebase Console → Project Settings → Your apps → Android → Add fingerprint → paste it, save, redownload `google-services.json`, ship next update.
 
 ## Analytics
 
