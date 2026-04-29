@@ -58,34 +58,36 @@ class _FeedbackPageState extends State<FeedbackPage>
         scrolledUnderElevation: 0,
         toolbarHeight: 48,
         title: const Text('Send feedback', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600))),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Bug reports, feature ideas, or anything else — we read every message.',
-              style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[400] : Colors.grey[600])),
-            const SizedBox(height: 16),
-            Expanded(
-              child: TextField(
-                controller: _controller,
-                enabled: !_isSubmitting,
-                maxLines: null,
-                expands: true,
-                textAlignVertical: TextAlignVertical.top,
-                maxLength: FeedbackService.m_MaxMessageLength,
-                decoration: InputDecoration(
-                  hintText: 'What\'s on your mind?',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  alignLabelWithHint: true))),
-            const SizedBox(height: 12),
-            FilledButton(
-              onPressed: _isSubmitting ? null : _submit,
-              child: _isSubmitting
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Send')),
-          ],
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Bug reports, feature ideas, or anything else — we read every message.',
+                style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[400] : Colors.grey[600])),
+              const SizedBox(height: 16),
+              Expanded(
+                child: TextField(
+                  controller: _controller,
+                  enabled: !_isSubmitting,
+                  maxLines: null,
+                  expands: true,
+                  textAlignVertical: TextAlignVertical.top,
+                  maxLength: FeedbackService.m_MaxMessageLength,
+                  decoration: InputDecoration(
+                    hintText: 'What\'s on your mind?',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    alignLabelWithHint: true))),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: _isSubmitting ? null : _submit,
+                child: _isSubmitting
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('Send')),
+            ],
+          ),
         ),
       ),
     );
