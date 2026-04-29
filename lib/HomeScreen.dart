@@ -99,15 +99,6 @@ class _ProfileMenuContentState extends State<_ProfileMenuContent>
                         ? Colors.transparent
                         : Colors.grey[400]))),
               ])))),
-        InkWell(
-          onTap: () => Navigator.pop(context, 'feedback'),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SizedBox(
-              height: kMinInteractiveDimension,
-              child: _menuRow(
-                icon: Icon(Icons.chat_bubble_outline, size: 20, color: iconColor),
-                label: 'Send feedback')))),
         Divider(height: 1, color: isDark ? Colors.grey[700] : Colors.grey.shade300),
         InkWell(
           onTap: () async {
@@ -394,8 +385,6 @@ class HomeScreenState extends State<HomeScreen>
           case 'account':
             await Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()));
             if (mounted) loadProgress();
-          case 'feedback':
-            await Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackPage()));
         }
       },
       itemBuilder: (context) => [
