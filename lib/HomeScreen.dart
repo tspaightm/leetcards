@@ -614,27 +614,29 @@ class HomeScreenState extends State<HomeScreen>
         if (_isSignedIn && m_UserTier != UserTier.Free && m_AvailableCollections.isNotEmpty) ...[
           const SizedBox(width: 12),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                _buildChip('All', m_SelectedCollectionId == null, ()
-                {
-                  setState(() => m_SelectedCollectionId = null);
-                  loadProgress();
-                }, hPad: 10, vPad: 5, fontSize: 11),
-                ...m_AvailableCollections.map((c)
-                {
-                  final id = c['id'] as String;
-                  final name = c['name'] as String? ?? id;
-                  return Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: _buildChip(name, m_SelectedCollectionId == id, ()
-                    {
-                      setState(() => m_SelectedCollectionId = id);
-                      loadProgress();
-                    }, hPad: 10, vPad: 5, fontSize: 11));
-                }),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildChip('All', m_SelectedCollectionId == null, ()
+                  {
+                    setState(() => m_SelectedCollectionId = null);
+                    loadProgress();
+                  }, hPad: 10, vPad: 5, fontSize: 11),
+                  ...m_AvailableCollections.map((c)
+                  {
+                    final id = c['id'] as String;
+                    final name = c['name'] as String? ?? id;
+                    return Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: _buildChip(name, m_SelectedCollectionId == id, ()
+                      {
+                        setState(() => m_SelectedCollectionId = id);
+                        loadProgress();
+                      }, hPad: 10, vPad: 5, fontSize: 11));
+                  }),
+                ],
+              ),
             ),
           ),
         ],
