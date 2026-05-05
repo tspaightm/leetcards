@@ -13,8 +13,7 @@ class FeedbackService
   static const String m_FeedbackCollectionName = 'feedback';
   static const int m_MaxMessageLength = 5000;
 
-  // Writes a single feedback document with the message plus auto-captured
-  // context. Throws on failure so the UI can surface an error.
+  // Throws on failure so callers can surface an error to the user.
   static Future<void> submit(String message) async
   {
     final trimmed = message.trim();

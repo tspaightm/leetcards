@@ -2,7 +2,6 @@ import "package:leetcards/Common/Constants.dart";
 import "package:leetcards/Flashcards/FlashcardGame.dart";
 import "package:leetcards/Flashcards/AlgorithmFlashcard.dart";
 import "package:leetcards/Flashcards/AlgorithmResultsCard.dart";
-import "package:leetcards/Login/LoginPage.dart";
 import "package:leetcards/Profile/ProfilePage.dart";
 import "package:leetcards/Data/DatabaseService.dart";
 import "package:leetcards/Utilities/MarkdownUtils.dart";
@@ -13,6 +12,7 @@ import "package:flutter/material.dart";
 class AlgorithmFlashcardGame extends FlashcardGame<AlgorithmFlashcard>
 {
   final String? m_CollectionId;
+  final VoidCallback? m_OnReturnToLogin;
 
   const AlgorithmFlashcardGame
   ({
@@ -20,6 +20,7 @@ class AlgorithmFlashcardGame extends FlashcardGame<AlgorithmFlashcard>
     required super.m_Difficulty,
     required super.m_Topic,
     this.m_CollectionId,
+    this.m_OnReturnToLogin,
   });
 
   @override
@@ -301,8 +302,14 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => Navigator.push(context, MaterialPageRoute(
-          builder: (_) => isSignedIn ? const ProfilePage() : const LoginPage())),
+        onTap: () {
+          if (isSignedIn) {
+            Navigator.push(context, MaterialPageRoute(
+              builder: (_) => const ProfilePage()));
+          } else {
+            widget.m_OnReturnToLogin?.call();
+          }
+        },
         child: Text.rich(
           TextSpan(children: isSignedIn
             ? [

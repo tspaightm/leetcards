@@ -113,18 +113,15 @@ class LoginPage extends StatelessWidget
   Future<void> _signIn(BuildContext context, Future<SignInResult> Function() signInMethod) async
   {
     final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
 
     final result = await signInMethod();
 
     switch (result)
     {
       case SignInSuccess():
-        // LoginPage was pushed on top of HomeScreen (e.g. from a locked card).
-        // Pop back — the StreamBuilder handles navigation when it's the root route.
-        if (navigator.canPop()) navigator.pop();
+        // _buildHome swaps to HomeScreen when _currentUser updates.
+        break;
       case SignInCancelled():
-        // Silent — user closed the popup themselves.
         break;
       case SignInConflict():
         messenger.showSnackBar(

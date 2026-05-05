@@ -3,7 +3,6 @@ import "package:leetcards/Flashcards/AlgorithmFlashcardGame.dart";
 import "package:leetcards/Flashcards/FundamentalFlashcardGame.dart";
 import "package:leetcards/Feedback/FeedbackPage.dart";
 import "package:leetcards/Login/AuthService.dart";
-import "package:leetcards/Login/LoginPage.dart";
 import "package:leetcards/Data/DatabaseService.dart";
 import "package:leetcards/Progress/ProgressWidgets.dart";
 import "package:leetcards/Profile/ProfilePage.dart";
@@ -125,14 +124,14 @@ class HomeScreen extends StatefulWidget
 {
   final bool m_IsDarkMode;
   final VoidCallback m_OnThemeToggle;
-  final VoidCallback? m_OnSignOut;
+  final VoidCallback? m_OnReturnToLogin;
 
   const HomeScreen
   ({
     super.key,
     required this.m_IsDarkMode,
     required this.m_OnThemeToggle,
-    this.m_OnSignOut,
+    this.m_OnReturnToLogin,
   });
 
   @override
@@ -393,7 +392,7 @@ class HomeScreenState extends State<HomeScreen>
           onDarkModeToggle: widget.m_OnThemeToggle,
           onSignOut: () async {
             await AuthService().signOut();
-            if (mounted) widget.m_OnSignOut?.call();
+            if (mounted) widget.m_OnReturnToLogin?.call();
           }),
       ]);
   }
@@ -540,7 +539,7 @@ class HomeScreenState extends State<HomeScreen>
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginPage())),
+                      onTap: () => widget.m_OnReturnToLogin?.call(),
                       child: Text.rich(TextSpan(children: [
                         TextSpan(
                           text: 'Sign in',
@@ -580,13 +579,14 @@ class HomeScreenState extends State<HomeScreen>
             builder: (context) => AlgorithmFlashcardGame(
               m_Difficulty: difficulty,
               m_Topic: m_SelectedTopic,
-              m_CollectionId: _effectiveCollectionId(_isSignedIn, difficulty))))
+              m_CollectionId: _effectiveCollectionId(_isSignedIn, difficulty),
+              m_OnReturnToLogin: widget.m_OnReturnToLogin)))
           .then((_) => loadProgress()),
           isLockedFor: _algorithmLockPredicate(_isSignedIn),
           onLockedTap: _isSignedIn
             ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfilePage()))
                 .then((_) => loadProgress())
-            : () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginPage()))),
+            : () => widget.m_OnReturnToLogin?.call()),
       ],
     );
   }

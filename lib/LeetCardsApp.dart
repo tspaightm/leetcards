@@ -1,4 +1,5 @@
 import "package:leetcards/Common/Constants.dart";
+import "package:leetcards/Data/DatabaseService.dart";
 import "package:leetcards/HomeScreen.dart";
 import "package:leetcards/Login/LoginPage.dart";
 
@@ -26,24 +27,40 @@ class LeetCardsAppState extends State<LeetCardsApp>
   late final StreamSubscription<User?> _authSub;
   late final ThemeData _lightTheme;
   late final ThemeData _darkTheme;
+  final GlobalKey<NavigatorState> _navKey = GlobalKey<NavigatorState>();
 
   @override
   void initState()
   {
     super.initState();
-    // Single subscription owns both auth state and the dark-mode-on-signout
-    // flip. Updating both in the same setState avoids the cross-State race we
-    // had with StreamBuilder.
-    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) async {
       if (!mounted) return;
+
+      if (user == null)
+      {
+        setState(()
+        {
+          _currentUser = user;
+          _authInitialized = true;
+          m_IsDarkMode = true;
+        });
+        return;
+      }
+
+      // Await the saved theme before flipping _currentUser so HomeScreen's
+      // first frame renders with the correct theme.
+      final saved = await DatabaseService.getDarkModePreference(user.uid);
+      if (!mounted) return;
+
+      // Discard if the user signed out during the await — applying would
+      // resurrect the old auth state.
+      if (FirebaseAuth.instance.currentUser?.uid != user.uid) return;
+
       setState(()
       {
         _currentUser = user;
         _authInitialized = true;
-        if (user == null && !m_GuestMode && !m_IsDarkMode)
-        {
-          m_IsDarkMode = true;
-        }
+        if (saved != null) m_IsDarkMode = saved;
       });
     });
     _lightTheme = ThemeData(
@@ -83,10 +100,14 @@ class LeetCardsAppState extends State<LeetCardsApp>
 
   void ToggleTheme()
   {
-    setState(()
+    final newValue = !m_IsDarkMode;
+    setState(() => m_IsDarkMode = newValue);
+
+    // Fire-and-forget — UI shouldn't wait on the Firestore round-trip.
+    if (FirebaseAuth.instance.currentUser != null)
     {
-      m_IsDarkMode = !m_IsDarkMode;
-    });
+      DatabaseService.setDarkModePreference(newValue);
+    }
   }
 
   void _enterGuestMode()
@@ -98,12 +119,12 @@ class LeetCardsAppState extends State<LeetCardsApp>
     });
   }
 
-  void _exitGuestMode()
+  void _returnToLogin()
   {
-    setState(()
-    {
-      m_GuestMode = false;
-    });
+    setState(() => m_GuestMode = false);
+    // popUntil clears any pushed routes (e.g. FlashcardGame from a locked-card
+    // tap) so we land on LoginPage rather than leaving it underneath.
+    _navKey.currentState?.popUntil((route) => route.isFirst);
   }
 
   TextTheme _buildTextTheme(Brightness brightness)
@@ -146,7 +167,7 @@ class LeetCardsAppState extends State<LeetCardsApp>
       return HomeScreen(
         m_IsDarkMode: m_IsDarkMode,
         m_OnThemeToggle: ToggleTheme,
-        m_OnSignOut: _exitGuestMode);
+        m_OnReturnToLogin: _returnToLogin);
     }
     return LoginPage(m_OnGuestContinue: _enterGuestMode);
   }
@@ -159,6 +180,7 @@ class LeetCardsAppState extends State<LeetCardsApp>
     return MaterialApp(
       title: "LeetCards",
       debugShowCheckedModeBanner: false,
+      navigatorKey: _navKey,
       // Keep MaterialApp.theme static so AnimatedTheme never fires.
       // The active theme is injected synchronously via builder below.
       theme: _lightTheme,

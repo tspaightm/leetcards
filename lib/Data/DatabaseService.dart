@@ -143,6 +143,32 @@ class DatabaseService
     _currentTier = UserTier.Free;
   }
 
+  // Theme preference persisted on the user doc. Returns null if the uid is
+  // unknown, no preference saved, or the read fails — caller decides default.
+  static Future<bool?> getDarkModePreference([String? uid]) async
+  {
+    uid ??= m_Auth.currentUser?.uid;
+    if (uid == null) return null;
+    try
+    {
+      final doc = await _userDoc(uid).get();
+      return doc.data()?['isDarkMode'] as bool?;
+    }
+    catch (e)
+    {
+      return null;
+    }
+  }
+
+  static Future<void> setDarkModePreference(bool isDarkMode) async
+  {
+    final user = m_Auth.currentUser;
+    if (user == null) return;
+    await _userDoc(user.uid).set(
+      {'isDarkMode': isDarkMode},
+      SetOptions(merge: true));
+  }
+
   static Future<void> setUserTier(UserTier tier) async
   {
     final user = m_Auth.currentUser;
