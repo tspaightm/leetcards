@@ -290,26 +290,29 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
     if (widget.m_CollectionId != AppConstants.freePreviewCollectionId) return null;
 
     final bool isSignedIn = FirebaseAuth.instance.currentUser != null;
-    final linkLabel = isSignedIn ? 'Upgrade to Plus' : 'Sign in';
+    final linkStyle = TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w600,
+      color: AppColors.indigo,
+      decoration: TextDecoration.underline,
+      decorationColor: AppColors.indigo);
+    final plainStyle = TextStyle(fontSize: 14, color: Colors.grey[600]);
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () => Navigator.push(context, MaterialPageRoute(
           builder: (_) => isSignedIn ? const ProfilePage() : const LoginPage())),
         child: Text.rich(
-          TextSpan(children: [
-            TextSpan(
-              text: '$linkLabel ',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.indigo,
-                decoration: TextDecoration.underline,
-                decorationColor: AppColors.indigo)),
-            TextSpan(
-              text: 'to unlock all Easy problems!',
-              style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-          ]),
+          TextSpan(children: isSignedIn
+            ? [
+                TextSpan(text: 'Upgrade to Plus ', style: linkStyle),
+                TextSpan(text: 'to unlock all Easy problems!', style: plainStyle),
+              ]
+            : [
+                TextSpan(text: 'Sign in', style: linkStyle),
+                TextSpan(text: ' and upgrade to Plus to unlock all Easy problems!', style: plainStyle),
+              ]),
           textAlign: TextAlign.center,
         ),
       ),
