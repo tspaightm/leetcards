@@ -49,7 +49,7 @@ class AlgorithmResultsCardState extends State<AlgorithmResultsCard>
             icon: const Icon(Icons.home_outlined),
             onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
             tooltip: 'Home'),
-          const SizedBox(width: 4),
+          const SizedBox(width: 16),
         ],
         bottom: widget.m_Progress != null
           ? PreferredSize(
@@ -61,7 +61,7 @@ class AlgorithmResultsCardState extends State<AlgorithmResultsCard>
                 valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary)))
           : null),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
         child: SafeArea(
           child: Card(
             color: isDark ? AppColors.darkSurface : const Color(0xFFF9FAFB),
