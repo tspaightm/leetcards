@@ -26,14 +26,8 @@ class FundamentalFlashcardGameState extends FlashcardGameState<FundamentalFlashc
   bool m_Submitted = false;
   bool m_ShowExplanation = false;
 
-  List<String> m_EligibleIds = [];
-  int m_CurrentIndex = 0;
   bool m_IsLoadingFundamentals = true;
   String? m_FundamentalsError;
-  final Map<String, FundamentalFlashcard> m_CardCache = {};
-  double? m_CompletionPercentage;
-  int m_TotalCards = 0;
-  int m_CompletedCards = 0;
 
   @override
   void initState()
@@ -46,24 +40,17 @@ class FundamentalFlashcardGameState extends FlashcardGameState<FundamentalFlashc
   CardType get cardType => CardType.fundamental;
 
   @override
+  String get cardLogLabel => 'fundamental';
+
+  @override
+  Future<Map<String, dynamic>> fetchCardData(String id) =>
+    DatabaseService.getFundamentalById(id);
+
+  @override
   bool get isLoading => m_IsLoadingFundamentals;
 
   @override
   String? get errorMessage => m_FundamentalsError;
-
-  @override
-  bool get hasNoContent => m_EligibleIds.isEmpty;
-
-  @override
-  double? get cardProgress => m_CompletionPercentage != null
-    ? m_CompletionPercentage! / 100.0
-    : null;
-
-  void _updatePercentageLocally()
-  {
-    if (m_TotalCards == 0) return;
-    setState(() { m_CompletionPercentage = (m_CompletedCards / m_TotalCards) * 100.0; });
-  }
 
   @override
   bool get canGoBack => m_CachedFlashcard != null && m_CurrentIndex > 0;
@@ -142,23 +129,23 @@ class FundamentalFlashcardGameState extends FlashcardGameState<FundamentalFlashc
         m_CurrentIndex = index;
         m_CachedFlashcard = cached;
       });
-      _evictStaleCacheEntries();
-      _prefetchNeighbors(index);
+      evictStaleCacheEntries();
+      prefetchNeighbors(index);
       return;
     }
 
     try
     {
-      final data = await DatabaseService.getFundamentalById(id);
+      final data = await fetchCardData(id);
       if (!mounted) return;
-      final flashcard = m_CardCache.putIfAbsent(id, () => _buildFlashcard(data));
+      final flashcard = m_CardCache.putIfAbsent(id, () => parseFlashcard(data));
       setState(()
       {
         m_CurrentIndex = index;
         m_CachedFlashcard = flashcard;
       });
-      _evictStaleCacheEntries();
-      _prefetchNeighbors(index);
+      evictStaleCacheEntries();
+      prefetchNeighbors(index);
     }
     catch (e)
     {
@@ -167,46 +154,8 @@ class FundamentalFlashcardGameState extends FlashcardGameState<FundamentalFlashc
     }
   }
 
-  // Keep only the current card ± 1 in the parsed-card cache. Long skip-heavy
-  // sessions would otherwise retain every visited card's body indefinitely.
-  void _evictStaleCacheEntries()
-  {
-    if (m_EligibleIds.isEmpty) { m_CardCache.clear(); return; }
-    final keep = <String>{};
-    for (final offset in const [-1, 0, 1])
-    {
-      final idx = m_CurrentIndex + offset;
-      if (idx >= 0 && idx < m_EligibleIds.length) keep.add(m_EligibleIds[idx]);
-    }
-    m_CardCache.removeWhere((id, _) => !keep.contains(id));
-  }
-
-  void _logCache()
-  {
-    debugPrint('[cache] fundamental idx=$m_CurrentIndex/${m_EligibleIds.length - 1} entries=${m_CardCache.keys.toList()}');
-  }
-
-  void _prefetchNeighbors(int index)
-  {
-    bool kicked = false;
-    for (final offset in const [-1, 1])
-    {
-      final idx = index + offset;
-      if (idx < 0 || idx >= m_EligibleIds.length) continue;
-      final id = m_EligibleIds[idx];
-      if (m_CardCache.containsKey(id)) continue;
-      kicked = true;
-      DatabaseService.getFundamentalById(id).then((data)
-      {
-        if (!mounted) return;
-        m_CardCache.putIfAbsent(id, () => _buildFlashcard(data));
-        _logCache();
-      }).catchError((_) { /* retry on user advance */ });
-    }
-    if (!kicked) _logCache();
-  }
-
-  FundamentalFlashcard _buildFlashcard(Map<String, dynamic> data)
+  @override
+  FundamentalFlashcard parseFlashcard(Map<String, dynamic> data)
   {
     final String id = data["id"] as String;
     final options = (data["options"] as List<dynamic>)
@@ -238,7 +187,7 @@ class FundamentalFlashcardGameState extends FlashcardGameState<FundamentalFlashc
       if (isCorrect)
       {
         m_CompletedCards++;
-        _updatePercentageLocally();
+        updatePercentageLocally();
         saveProgress(m_CachedFlashcard!.m_Id);
       }
 

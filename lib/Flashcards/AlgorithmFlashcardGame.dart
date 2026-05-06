@@ -37,14 +37,8 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
   bool m_ShowLongPrompt = true;
   bool m_IsDescriptionCollapsed = false;
 
-  List<String> m_EligibleIds = [];
-  int m_CurrentIndex = 0;
   bool m_IsLoadingProblems = true;
   String? m_ProblemsError;
-  final Map<String, AlgorithmFlashcard> m_CardCache = {};
-  double? m_CompletionPercentage;
-  int m_TotalCards = 0;
-  int m_CompletedCards = 0;
 
   @override
   void initState()
@@ -52,9 +46,16 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
     super.initState();
     loadAvailableCards();
   }
-  
+
   @override
   CardType get cardType => CardType.algorithm;
+
+  @override
+  String get cardLogLabel => 'algorithm';
+
+  @override
+  Future<Map<String, dynamic>> fetchCardData(String id) =>
+    DatabaseService.getAlgorithmById(id);
 
   @override
   Future<void> resetProgress() =>
@@ -72,20 +73,6 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
 
   @override
   String? get errorMessage => m_ProblemsError;
-
-  @override
-  bool get hasNoContent => m_EligibleIds.isEmpty;
-
-  @override
-  double? get cardProgress => m_CompletionPercentage != null
-    ? m_CompletionPercentage! / 100.0
-    : null;
-
-  void _updatePercentageLocally()
-  {
-    if (m_TotalCards == 0) return;
-    setState(() { m_CompletionPercentage = (m_CompletedCards / m_TotalCards) * 100.0; });
-  }
 
   @override
   bool get canGoBack
@@ -166,16 +153,16 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
         m_ShowLongPrompt = true;
         _resetQuizState();
       });
-      _evictStaleCacheEntries();
-      _prefetchNeighbors(index);
+      evictStaleCacheEntries();
+      prefetchNeighbors(index);
       return;
     }
 
     try
     {
-      final data = await DatabaseService.getAlgorithmById(id);
+      final data = await fetchCardData(id);
       if (!mounted) return;
-      final flashcard = m_CardCache.putIfAbsent(id, () => _buildFlashcard(data));
+      final flashcard = m_CardCache.putIfAbsent(id, () => parseFlashcard(data));
       setState(()
       {
         m_CurrentIndex = index;
@@ -183,8 +170,8 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
         m_ShowLongPrompt = true;
         _resetQuizState();
       });
-      _evictStaleCacheEntries();
-      _prefetchNeighbors(index);
+      evictStaleCacheEntries();
+      prefetchNeighbors(index);
     }
     catch (e)
     {
@@ -193,46 +180,8 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
     }
   }
 
-  // Keep only the current card ± 1 in the parsed-card cache. Long skip-heavy
-  // sessions would otherwise retain every visited card's body indefinitely.
-  void _evictStaleCacheEntries()
-  {
-    if (m_EligibleIds.isEmpty) { m_CardCache.clear(); return; }
-    final keep = <String>{};
-    for (final offset in const [-1, 0, 1])
-    {
-      final idx = m_CurrentIndex + offset;
-      if (idx >= 0 && idx < m_EligibleIds.length) keep.add(m_EligibleIds[idx]);
-    }
-    m_CardCache.removeWhere((id, _) => !keep.contains(id));
-  }
-
-  void _logCache()
-  {
-    debugPrint('[cache] algorithm idx=$m_CurrentIndex/${m_EligibleIds.length - 1} entries=${m_CardCache.keys.toList()}');
-  }
-
-  void _prefetchNeighbors(int index)
-  {
-    bool kicked = false;
-    for (final offset in const [-1, 1])
-    {
-      final idx = index + offset;
-      if (idx < 0 || idx >= m_EligibleIds.length) continue;
-      final id = m_EligibleIds[idx];
-      if (m_CardCache.containsKey(id)) continue;
-      kicked = true;
-      DatabaseService.getAlgorithmById(id).then((data)
-      {
-        if (!mounted) return;
-        m_CardCache.putIfAbsent(id, () => _buildFlashcard(data));
-        _logCache();
-      }).catchError((_) { /* retry on user advance */ });
-    }
-    if (!kicked) _logCache();
-  }
-
-  AlgorithmFlashcard _buildFlashcard(Map<String, dynamic> data)
+  @override
+  AlgorithmFlashcard parseFlashcard(Map<String, dynamic> data)
   {
     final String id = data["id"] as String;
     final questions = (data["questions"] as List<dynamic>)
@@ -281,7 +230,7 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
   {
     saveProgress(m_CachedFlashcard!.m_Id);
     m_CompletedCards++;
-    _updatePercentageLocally();
+    updatePercentageLocally();
     moveToNextProblem(removeCard: true);
   }
 
@@ -402,7 +351,7 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
         if (allCorrect)
         {
           m_CompletedCards++;
-          _updatePercentageLocally();
+          updatePercentageLocally();
           saveProgress(m_CachedFlashcard!.m_Id);
         }
 

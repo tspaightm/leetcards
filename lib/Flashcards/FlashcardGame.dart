@@ -23,9 +23,21 @@ abstract class FlashcardGameState<T, W extends FlashcardGame<T>> extends State<W
 {
   T? m_CachedFlashcard;
 
+  // Shared list-of-cards state. Each subclass populates m_EligibleIds in its
+  // own loadAvailableCards() flow; the base class drives prefetch + caching.
+  List<String> m_EligibleIds = [];
+  int m_CurrentIndex = 0;
+  final Map<String, T> m_CardCache = {};
+
+  // Progress numerators kept on the state so the progress bar updates locally
+  // without round-tripping through the database after each completion.
+  double? m_CompletionPercentage;
+  int m_TotalCards = 0;
+  int m_CompletedCards = 0;
+
   bool get isLoading => false;
   String? get errorMessage => null;
-  bool get hasNoContent => false;
+  bool get hasNoContent => m_EligibleIds.isEmpty;
   String get loadingMessage => "Loading...";
   String get noContentMessage => "You've completed all the cards!";
   String get errorTitle => "Error Loading Content";
@@ -33,6 +45,12 @@ abstract class FlashcardGameState<T, W extends FlashcardGame<T>> extends State<W
   Widget buildCard(T flashcard);
   Future<void> loadAvailableCards();
   CardType get cardType;
+
+  // Subclasses provide the type-specific Firestore call and parser, plus a
+  // short label used in cache debug logs.
+  Future<Map<String, dynamic>> fetchCardData(String id);
+  T parseFlashcard(Map<String, dynamic> data);
+  String get cardLogLabel;
 
   // Override to return a value that changes whenever the scroll position
   // should reset to the top (new card, new question, view mode change, etc.).
@@ -47,7 +65,54 @@ abstract class FlashcardGameState<T, W extends FlashcardGame<T>> extends State<W
   void onGoBack() {}
 
   // Progress 0.0–1.0 through the available card list. null = no bar shown.
-  double? get cardProgress => null;
+  double? get cardProgress => m_CompletionPercentage != null
+    ? m_CompletionPercentage! / 100.0
+    : null;
+
+  void updatePercentageLocally()
+  {
+    if (m_TotalCards == 0) return;
+    setState(() { m_CompletionPercentage = (m_CompletedCards / m_TotalCards) * 100.0; });
+  }
+
+  // Keep only the current card ± 1 in the parsed-card cache. Long skip-heavy
+  // sessions would otherwise retain every visited card's body indefinitely.
+  void evictStaleCacheEntries()
+  {
+    if (m_EligibleIds.isEmpty) { m_CardCache.clear(); return; }
+    final keep = <String>{};
+    for (final offset in const [-1, 0, 1])
+    {
+      final idx = m_CurrentIndex + offset;
+      if (idx >= 0 && idx < m_EligibleIds.length) keep.add(m_EligibleIds[idx]);
+    }
+    m_CardCache.removeWhere((id, _) => !keep.contains(id));
+  }
+
+  void _logCache()
+  {
+    debugPrint('[cache] $cardLogLabel idx=$m_CurrentIndex/${m_EligibleIds.length - 1} entries=${m_CardCache.keys.toList()}');
+  }
+
+  void prefetchNeighbors(int index)
+  {
+    bool kicked = false;
+    for (final offset in const [-1, 1])
+    {
+      final idx = index + offset;
+      if (idx < 0 || idx >= m_EligibleIds.length) continue;
+      final id = m_EligibleIds[idx];
+      if (m_CardCache.containsKey(id)) continue;
+      kicked = true;
+      fetchCardData(id).then((data)
+      {
+        if (!mounted) return;
+        m_CardCache.putIfAbsent(id, () => parseFlashcard(data));
+        _logCache();
+      }).catchError((_) { /* retry on user advance */ });
+    }
+    if (!kicked) _logCache();
+  }
 
   // Extra actions inserted before the home button in the main content AppBar.
   List<Widget> buildExtraActions() => const [];
