@@ -1,4 +1,5 @@
 import "package:leetcards/Common/Constants.dart";
+import "package:leetcards/Feedback/FeedbackPage.dart";
 import "package:leetcards/Flashcards/AlgorithmFlashcard.dart";
 import "package:leetcards/Utilities/MarkdownUtils.dart";
 
@@ -66,13 +67,17 @@ class AlgorithmResultsCardState extends State<AlgorithmResultsCard>
             color: isDark ? AppColors.darkSurface : const Color(0xFFF9FAFB),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 8,
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: SingleChildScrollView(
-                child: Column(
+            child: SingleChildScrollView(
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.m_Flashcard.m_Title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 24),
+                      child: Text(widget.m_Flashcard.m_Title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
                     const SizedBox(height: 20),
                     Divider(height: 1, thickness: 1, color: isDark ? Colors.grey[600]! : Colors.grey.shade300),
                     const SizedBox(height: 20),
@@ -179,7 +184,20 @@ class AlgorithmResultsCardState extends State<AlgorithmResultsCard>
                       },
                     ),
                   ],
-                ),
+                )),
+                  Positioned(
+                    top: 4,
+                    right: 4,
+                    child: IconButton(
+                      icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                      tooltip: 'Send feedback on this card',
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FeedbackPage(
+                            cardId: widget.m_Flashcard.m_Id,
+                            cardType: CardType.algorithm))))),
+                ],
               ),
             ),
           ),

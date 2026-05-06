@@ -54,6 +54,9 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
   String get cardLogLabel => 'algorithm';
 
   @override
+  String? get currentCardId => m_CachedFlashcard?.m_Id;
+
+  @override
   Future<Map<String, dynamic>> fetchCardData(String id) =>
     DatabaseService.getAlgorithmById(id);
 
@@ -446,7 +449,9 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(flashcard.m_Title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        Padding(
+          padding: const EdgeInsets.only(right: 24),
+          child: Text(flashcard.m_Title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
         const SizedBox(height: 20),
         Divider(height: 1, thickness: 1, color: dividerColor),
         const SizedBox(height: 20),
@@ -512,7 +517,9 @@ class AlgorithmFlashcardGameState extends FlashcardGameState<AlgorithmFlashcard,
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(flashcard.m_Title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+        Padding(
+          padding: const EdgeInsets.only(right: 24),
+          child: Text(flashcard.m_Title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold))),
         const SizedBox(height: 20),
         Divider(height: 1, thickness: 1, color: dividerColor),
         if (m_IsDescriptionCollapsed)

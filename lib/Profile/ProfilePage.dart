@@ -17,6 +17,11 @@ class ProfilePage extends StatefulWidget
 class _ProfilePageState extends State<ProfilePage>
 {
   UserTier m_CurrentTier = UserTier.Free;
+  // m_BillingCycle is the toggle's local state; m_SavedCycle is the persisted
+  // cycle. They diverge while the user previews prices but hasn't tapped a tier.
+  // Defaults to Yearly to surface the better-value plan first.
+  BillingCycle m_BillingCycle = BillingCycle.Yearly;
+  BillingCycle m_SavedCycle = BillingCycle.Yearly;
   bool m_IsLoading = true;
   bool m_IsSaving = false;
   bool m_IsDeleting = false;
@@ -26,30 +31,42 @@ class _ProfilePageState extends State<ProfilePage>
   void initState()
   {
     super.initState();
-    _loadTier();
+    _loadSubscription();
   }
 
-  Future<void> _loadTier() async
+  Future<void> _loadSubscription() async
   {
     final tier = await DatabaseService.getUserTier();
+    final cycle = await DatabaseService.getBillingCycle();
+    if (!mounted) return;
     setState(()
     {
       m_CurrentTier = tier;
+      m_BillingCycle = cycle;
+      m_SavedCycle = cycle;
       m_IsLoading = false;
     });
   }
 
   Future<void> _selectTier(UserTier tier) async
   {
-    if (tier == m_CurrentTier || m_IsSaving) return;
+    if (m_IsSaving) return;
+    if (tier == m_CurrentTier && m_BillingCycle == m_SavedCycle) return;
 
     setState(()
     {
       m_CurrentTier = tier;
       m_IsSaving = true;
     });
-    await DatabaseService.setUserTier(tier);
-    if (mounted) setState(() => m_IsSaving = false);
+    await DatabaseService.setUserTier(tier, cycle: m_BillingCycle);
+    if (mounted)
+    {
+      setState(()
+      {
+        m_SavedCycle = m_BillingCycle;
+        m_IsSaving = false;
+      });
+    }
   }
 
   @override
@@ -91,6 +108,8 @@ class _ProfilePageState extends State<ProfilePage>
                   'Toggle freely — payment coming soon.',
                   style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[500] : Colors.grey[600])),
                 const SizedBox(height: 16),
+                _buildCycleToggle(isDark),
+                const SizedBox(height: 16),
                 _buildTierCard(
                   isDark: isDark,
                   tier: UserTier.Free,
@@ -102,14 +121,14 @@ class _ProfilePageState extends State<ProfilePage>
                   isDark: isDark,
                   tier: UserTier.Plus,
                   icon: Icons.bolt_outlined,
-                  features: const ['Everything in Free', 'Algorithm Easy questions'],
+                  features: const ['Everything in Free', 'Easy Algorithm questions'],
                 ),
                 const SizedBox(height: 12),
                 _buildTierCard(
                   isDark: isDark,
                   tier: UserTier.Pro,
                   icon: Icons.workspace_premium_outlined,
-                  features: const ['Everything in Plus', 'Algorithm Medium & Hard questions'],
+                  features: const ['Everything in Plus', 'Medium & Hard Algorithm questions'],
                 ),
                 const SizedBox(height: 40),
                 _buildDeleteAccount(isDark),
@@ -208,12 +227,105 @@ class _ProfilePageState extends State<ProfilePage>
 
   String _tierPrice(UserTier tier)
   {
+    final bool yearly = m_BillingCycle == BillingCycle.Yearly;
+    final String suffix = yearly ? '/ year' : '/ month';
     switch (tier)
     {
       case UserTier.Free:  return 'Free';
-      case UserTier.Plus:  return '\$${RemoteConfigService.plusPricePerMonth} / month';
-      case UserTier.Pro:   return '\$${RemoteConfigService.proPricePerMonth} / month';
+      case UserTier.Plus:
+        final price = yearly ? RemoteConfigService.plusPricePerYear : RemoteConfigService.plusPricePerMonth;
+        return '\$$price $suffix';
+      case UserTier.Pro:
+        final price = yearly ? RemoteConfigService.proPricePerYear : RemoteConfigService.proPricePerMonth;
+        return '\$$price $suffix';
     }
+  }
+
+  // Effective per-month rate when a yearly subscription is selected. Returns
+  // null for Free or Monthly cycle (no subprice line shown).
+  String? _tierSubprice(UserTier tier)
+  {
+    if (m_BillingCycle != BillingCycle.Yearly) return null;
+    if (tier == UserTier.Free) return null;
+    final yearlyPrice = tier == UserTier.Plus
+      ? RemoteConfigService.plusPricePerYear
+      : RemoteConfigService.proPricePerYear;
+    final perMonth = (yearlyPrice / 12).toStringAsFixed(2);
+    return '(\$$perMonth/mo)';
+  }
+
+  // Per-tier savings on yearly. Returns null when not on Yearly cycle, for the
+  // Free tier, or when prices don't actually save anything.
+  int? _yearlySavingsPercent(UserTier tier)
+  {
+    if (m_BillingCycle != BillingCycle.Yearly) return null;
+    if (tier == UserTier.Free) return null;
+    final monthly = tier == UserTier.Plus
+      ? RemoteConfigService.plusPricePerMonth
+      : RemoteConfigService.proPricePerMonth;
+    final yearly = tier == UserTier.Plus
+      ? RemoteConfigService.plusPricePerYear
+      : RemoteConfigService.proPricePerYear;
+    final monthlyTotal = monthly * 12;
+    if (monthlyTotal <= 0 || yearly >= monthlyTotal) return null;
+    return ((monthlyTotal - yearly) / monthlyTotal * 100).round();
+  }
+
+  Widget _savingsBadge(int savings, bool isDark)
+  {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: isDark ? 0.25 : 0.15),
+        borderRadius: BorderRadius.circular(6)),
+      child: Text(
+        'Save $savings%',
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: isDark ? Colors.green[300] : Colors.green[700])));
+  }
+
+  Widget _buildCycleToggle(bool isDark)
+  {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkSurface : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isDark ? Colors.grey[800]! : Colors.grey.shade300, width: 1)),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          Expanded(child: _cycleButton(BillingCycle.Monthly, 'Monthly', isDark)),
+          Expanded(child: _cycleButton(BillingCycle.Yearly, 'Yearly', isDark)),
+        ]));
+  }
+
+  Widget _cycleButton(BillingCycle cycle, String label, bool isDark)
+  {
+    final bool isSelected = m_BillingCycle == cycle;
+    return GestureDetector(
+      onTap: () => setState(() => m_BillingCycle = cycle),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+            ? (isDark ? Colors.grey[800] : Colors.white)
+            : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: isSelected && !isDark
+            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 4, offset: const Offset(0, 1))]
+            : null),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isSelected
+                ? (isDark ? Colors.white : Colors.black87)
+                : (isDark ? Colors.grey[400] : Colors.grey[600]))))));
   }
 
   Widget _buildTierCard({
@@ -223,11 +335,13 @@ class _ProfilePageState extends State<ProfilePage>
     required List<String> features,
   })
   {
-    final bool isSelected = m_CurrentTier == tier;
+    // Highlight only when both the tier AND the toggled cycle match what's
+    // saved — toggling Monthly↔Yearly with no tap should deselect, forcing the
+    // user to explicitly pick the (tier, cycle) combination they want.
+    final bool isSelected = m_CurrentTier == tier && m_BillingCycle == m_SavedCycle;
     final Color accentColor = _tierColor(tier);
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
+    return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         color: isSelected
@@ -235,7 +349,7 @@ class _ProfilePageState extends State<ProfilePage>
           : isDark ? AppColors.darkSurface : Colors.white,
         border: Border.all(
           color: isSelected ? accentColor : (isDark ? Colors.grey[700]! : Colors.grey.shade300),
-          width: isSelected ? 2 : 1.5)),
+          width: 2)),
       child: InkWell(
         onTap: m_IsSaving ? null : () => _selectTier(tier),
         borderRadius: BorderRadius.circular(16),
@@ -257,6 +371,7 @@ class _ProfilePageState extends State<ProfilePage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           tier.Name,
@@ -264,13 +379,36 @@ class _ProfilePageState extends State<ProfilePage>
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: isSelected ? accentColor : null)),
+                        if (_yearlySavingsPercent(tier) case final int savings) ...[
+                          const SizedBox(width: 8),
+                          _savingsBadge(savings, isDark),
+                        ],
                         const Spacer(),
-                        Text(
-                          _tierPrice(tier),
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                        // Stack instead of Column so the subprice overflows
+                        // below the Row without adding to its height. This keeps
+                        // the features aligned to the same y-position regardless
+                        // of cycle.
+                        Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.topRight,
+                          children: [
+                            Text(
+                              _tierPrice(tier),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                            if (_tierSubprice(tier) case final String sub)
+                              Positioned(
+                                top: 18,
+                                right: 0,
+                                child: Text(
+                                  sub,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w400,
+                                    color: isDark ? Colors.grey[500] : Colors.grey[500]))),
+                          ]),
                       ]),
                     const SizedBox(height: 6),
                     ...features.map((f) => Padding(

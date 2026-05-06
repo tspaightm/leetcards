@@ -37,6 +37,19 @@ extension UserTierExtension on UserTier
   }
 }
 
+enum BillingCycle { Monthly, Yearly }
+extension BillingCycleExtension on BillingCycle
+{
+  String get Name
+  {
+    switch (this)
+    {
+      case BillingCycle.Monthly: return "Monthly";
+      case BillingCycle.Yearly:  return "Yearly";
+    }
+  }
+}
+
 enum Difficulty { Easy, Medium, Hard }
 extension DifficultyExtension on Difficulty
 {

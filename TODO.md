@@ -13,19 +13,6 @@ Cross-cutting tasks that don't have a natural home in code. For code-local remin
     - `$(SRCROOT)/$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)`
   - Then `cd ios && pod install`.
 
-## Firestore
-
-- [ ] **Add security rule for `feedback` collection.** Currently the SDK call will fail until rules permit it. In Firebase Console → Firestore → Rules, add inside `match /databases/{database}/documents`:
-  ```
-  match /feedback/{id} {
-    allow create: if request.resource.data.message is string
-                  && request.resource.data.message.size() > 0
-                  && request.resource.data.message.size() < 5000;
-    allow read, update, delete: if false;
-  }
-  ```
-  Allows anyone (signed in or guest) to submit, with a size guard to prevent abuse. Reads only from the Console, not the app.
-
 ## Auth
 
 - [ ] **Enable Apple Sign-In on Android (once Apple Developer account is paid).** Currently hidden on Android via `_showApple` gate in [LoginPage.dart:20](lib/Login/LoginPage.dart#L20). To enable:
@@ -39,6 +26,20 @@ Cross-cutting tasks that don't have a natural home in code. For code-local remin
   - After first upload: Play Console → Setup → App signing → copy the **App signing key certificate** SHA-1.
   - Firebase Console → Project Settings → Your apps → Android → Add fingerprint → paste it, save, redownload `google-services.json`, ship next update.
 
+## Firestore
+
+- [ ] **Add security rule for `flashcard_feedback` collection.** Mirrors the existing `feedback` rule but also requires `cardId` and `cardType` fields. In Firebase Console → Firestore → Rules, add inside `match /databases/{database}/documents`:
+  ```
+  match /flashcard_feedback/{id} {
+    allow create: if request.resource.data.message is string
+                  && request.resource.data.message.size() > 0
+                  && request.resource.data.message.size() < 5000
+                  && request.resource.data.cardId is string
+                  && request.resource.data.cardType is string;
+    allow read, update, delete: if false;
+  }
+  ```
+
 ## Web
 
 - [ ] **Generate properly sized PWA icons before shipping web.** All four icon slots in [web/icons/](web/icons/) currently hold the same 109 KB `app_icon.png` copy. Works in browsers (they scale), but suboptimal:
@@ -47,8 +48,3 @@ Cross-cutting tasks that don't have a natural home in code. For code-local remin
   - Easy fix: add `web: true` to the `flutter_launcher_icons` block in [pubspec.yaml](pubspec.yaml) and run `flutter pub run flutter_launcher_icons` — same tool already configured for Android/iOS.
   - Also worth a fresh look at `web/favicon.png` — 109 KB is large for a favicon (typical is 5–10 KB at 32×32 or 64×64).
 
-## Analytics
-
-- [ ] Register custom event parameters in Firebase Console → Analytics → Custom Definitions so they're queryable in reports:
-  - `tier_change`: `from_tier`, `to_tier`
-  - `flashcard_completed`: parameters from [DatabaseService.dart:231](lib/Data/DatabaseService.dart#L231)

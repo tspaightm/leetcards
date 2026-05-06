@@ -1,3 +1,4 @@
+import 'package:leetcards/Common/Constants.dart';
 import 'package:leetcards/Data/DatabaseService.dart';
 
 import 'dart:io' show Platform;
@@ -11,10 +12,29 @@ import 'package:package_info_plus/package_info_plus.dart';
 class FeedbackService
 {
   static const String m_FeedbackCollectionName = 'feedback';
+  static const String m_FlashcardFeedbackCollectionName = 'flashcard_feedback';
   static const int m_MaxMessageLength = 5000;
 
   // Throws on failure so callers can surface an error to the user.
   static Future<void> submit(String message) async
+  {
+    final payload = await _buildPayload(message);
+    await FirebaseFirestore.instance
+      .collection(m_FeedbackCollectionName)
+      .add(payload);
+  }
+
+  static Future<void> submitForCard(String message, String cardId, CardType cardType) async
+  {
+    final payload = await _buildPayload(message);
+    payload['cardId'] = cardId;
+    payload['cardType'] = cardType.name;
+    await FirebaseFirestore.instance
+      .collection(m_FlashcardFeedbackCollectionName)
+      .add(payload);
+  }
+
+  static Future<Map<String, dynamic>> _buildPayload(String message) async
   {
     final trimmed = message.trim();
     if (trimmed.isEmpty) throw ArgumentError('message is empty');
@@ -29,19 +49,17 @@ class FeedbackService
       ? (await DatabaseService.getUserTier()).name
       : null;
 
-    await FirebaseFirestore.instance
-      .collection(m_FeedbackCollectionName)
-      .add({
-        'message': trimmed,
-        'uid': user?.uid,
-        'isGuest': user == null,
-        'appVersion': '${pkg.version}+${pkg.buildNumber}',
-        'platform': _platformName(),
-        'osVersion': _osVersion(),
-        'locale': PlatformDispatcher.instance.locale.toLanguageTag(),
-        'tier': tier,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+    return <String, dynamic>{
+      'message': trimmed,
+      'uid': user?.uid,
+      'isGuest': user == null,
+      'appVersion': '${pkg.version}+${pkg.buildNumber}',
+      'platform': _platformName(),
+      'osVersion': _osVersion(),
+      'locale': PlatformDispatcher.instance.locale.toLanguageTag(),
+      'tier': tier,
+      'createdAt': FieldValue.serverTimestamp(),
+    };
   }
 
   static String _platformName()

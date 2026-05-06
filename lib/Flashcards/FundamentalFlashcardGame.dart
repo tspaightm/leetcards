@@ -43,6 +43,9 @@ class FundamentalFlashcardGameState extends FlashcardGameState<FundamentalFlashc
   String get cardLogLabel => 'fundamental';
 
   @override
+  String? get currentCardId => m_CachedFlashcard?.m_Id;
+
+  @override
   Future<Map<String, dynamic>> fetchCardData(String id) =>
     DatabaseService.getFundamentalById(id);
 
@@ -245,7 +248,11 @@ class FundamentalFlashcardGameState extends FlashcardGameState<FundamentalFlashc
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        markdownBody(context, flashcard.m_Question, 22),
+        // Right padding reserves space for the feedback icon overlaid in the
+        // top-right corner of the card so the question wraps before reaching it.
+        Padding(
+          padding: const EdgeInsets.only(right: 24),
+          child: markdownBody(context, flashcard.m_Question, 22)),
         const SizedBox(height: 24),
 
         ...List.generate(flashcard.m_Options.length, (i)

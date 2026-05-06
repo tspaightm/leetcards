@@ -169,16 +169,35 @@ class DatabaseService
       SetOptions(merge: true));
   }
 
-  static Future<void> setUserTier(UserTier tier) async
+  static Future<BillingCycle> getBillingCycle() async
+  {
+    final user = m_Auth.currentUser;
+    if (user == null) return BillingCycle.Yearly;
+    try
+    {
+      final doc = await _userDoc(user.uid).get();
+      final str = doc.data()?['billingCycle'] as String?;
+      return BillingCycle.values.firstWhere(
+        (c) => c.name == str,
+        orElse: () => BillingCycle.Yearly);
+    }
+    catch (e)
+    {
+      return BillingCycle.Yearly;
+    }
+  }
+
+  static Future<void> setUserTier(UserTier tier, {BillingCycle cycle = BillingCycle.Yearly}) async
   {
     final user = m_Auth.currentUser;
     if (user == null) return;
 
     final previous = _currentTier;
+    final previousCycle = await getBillingCycle();
     await m_Firestore
       .collection(m_UsersCollectionName)
       .doc(user.uid)
-      .set({'tier': tier.name}, SetOptions(merge: true));
+      .set({'tier': tier.name, 'billingCycle': cycle.name}, SetOptions(merge: true));
     // Listener will fire with the new value; no manual cache update needed.
 
     final analytics = FirebaseAnalytics.instance;
@@ -187,8 +206,11 @@ class DatabaseService
       parameters: {
         'from_tier': previous.name,
         'to_tier': tier.name,
+        'from_cycle': previousCycle.name,
+        'to_cycle': cycle.name,
       });
     analytics.setUserProperty(name: 'user_tier', value: tier.name);
+    analytics.setUserProperty(name: 'billing_cycle', value: cycle.name);
   }
 
   // In-memory progress for guest sessions — cleared on app restart

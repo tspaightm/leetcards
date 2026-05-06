@@ -1,10 +1,17 @@
+import 'package:leetcards/Common/Constants.dart';
 import 'package:leetcards/Feedback/FeedbackService.dart';
 
 import 'package:flutter/material.dart';
 
 class FeedbackPage extends StatefulWidget
 {
-  const FeedbackPage({super.key});
+  // When both are set, feedback is submitted to the flashcard_feedback
+  // collection scoped to that card. Otherwise it goes to the general feedback
+  // collection.
+  final String? cardId;
+  final CardType? cardType;
+
+  const FeedbackPage({super.key, this.cardId, this.cardType});
 
   @override
   State<FeedbackPage> createState() => _FeedbackPageState();
@@ -14,6 +21,8 @@ class _FeedbackPageState extends State<FeedbackPage>
 {
   final TextEditingController _controller = TextEditingController();
   bool _isSubmitting = false;
+
+  bool get _isCardScoped => widget.cardId != null && widget.cardType != null;
 
   @override
   void dispose()
@@ -30,7 +39,14 @@ class _FeedbackPageState extends State<FeedbackPage>
     setState(() => _isSubmitting = true);
     try
     {
-      await FeedbackService.submit(text);
+      if (_isCardScoped)
+      {
+        await FeedbackService.submitForCard(text, widget.cardId!, widget.cardType!);
+      }
+      else
+      {
+        await FeedbackService.submit(text);
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Thanks — feedback sent.')));
@@ -65,7 +81,9 @@ class _FeedbackPageState extends State<FeedbackPage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Bug reports, feature ideas, or anything else — we read every message.',
+                _isCardScoped
+                  ? 'Tell us what\'s wrong, confusing, or could be better about this card.'
+                  : 'Bug reports, feature ideas, or anything else — we read every message.',
                 style: TextStyle(fontSize: 13, color: isDark ? Colors.grey[400] : Colors.grey[600])),
               const SizedBox(height: 16),
               Expanded(

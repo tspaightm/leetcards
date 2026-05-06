@@ -1,5 +1,6 @@
 import "package:leetcards/Common/Constants.dart";
 import "package:leetcards/Data/DatabaseService.dart";
+import "package:leetcards/Feedback/FeedbackPage.dart";
 
 import "package:flutter/material.dart";
 
@@ -51,6 +52,10 @@ abstract class FlashcardGameState<T, W extends FlashcardGame<T>> extends State<W
   Future<Map<String, dynamic>> fetchCardData(String id);
   T parseFlashcard(Map<String, dynamic> data);
   String get cardLogLabel;
+
+  // ID of the currently displayed card, used for card-scoped feedback. Null
+  // when no card is loaded.
+  String? get currentCardId;
 
   // Override to return a value that changes whenever the scroll position
   // should reset to the top (new card, new question, view mode change, etc.).
@@ -325,14 +330,30 @@ abstract class FlashcardGameState<T, W extends FlashcardGame<T>> extends State<W
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
         child: SafeArea(
           child: Card(
-            color: Theme.of(context).brightness == Brightness.dark 
+            color: Theme.of(context).brightness == Brightness.dark
               ? AppColors.darkSurface
               : const Color(0xFFF9FAFB),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 8,
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: SingleChildScrollView(key: ValueKey(scrollKey), child: buildCard(m_CachedFlashcard as T)))))));
+            child: SingleChildScrollView(
+              key: ValueKey(scrollKey),
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: buildCard(m_CachedFlashcard as T)),
+                  if (currentCardId case final String id)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: IconButton(
+                        icon: const Icon(Icons.chat_bubble_outline, size: 20),
+                        tooltip: 'Send feedback on this card',
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FeedbackPage(cardId: id, cardType: cardType))))),
+                ]))))));
   }
 
   @override
