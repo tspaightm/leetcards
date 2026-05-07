@@ -183,32 +183,34 @@ abstract class FlashcardGameState<T, W extends FlashcardGame<T>> extends State<W
         backgroundColor: Colors.transparent,
         automaticallyImplyLeading: false,
         elevation: 0),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red[300]),
-            const SizedBox(height: 16),
-            Text(
-              errorTitle,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(
-              errorMessage ?? 'An unknown error occurred.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600])),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: loadAvailableCards,
-              child: const Text('Try Again')),
-          ],
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.red[300]),
+              const SizedBox(height: 16),
+              Text(
+                errorTitle,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text(
+                errorMessage ?? 'An unknown error occurred.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600])),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: loadAvailableCards,
+                child: const Text('Try Again')),
+            ],
+          ),
         ),
       ),
     );
@@ -232,7 +234,8 @@ abstract class FlashcardGameState<T, W extends FlashcardGame<T>> extends State<W
             tooltip: 'Home'),
           const SizedBox(width: 16),
         ]),
-      body: SingleChildScrollView(
+      body: SafeArea(
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Center(
           child: Card(
@@ -286,7 +289,7 @@ abstract class FlashcardGameState<T, W extends FlashcardGame<T>> extends State<W
             ),
           ),
         ),
-      ),
+      )),
     );
   }
 

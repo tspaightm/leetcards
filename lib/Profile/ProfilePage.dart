@@ -93,7 +93,8 @@ class _ProfilePageState extends State<ProfilePage>
             tooltip: 'Home'),
           const SizedBox(width: 16),
         ]),
-      body: m_IsLoading
+      body: SafeArea(
+        child: m_IsLoading
         ? const Center(child: CircularProgressIndicator())
         : SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
@@ -134,7 +135,7 @@ class _ProfilePageState extends State<ProfilePage>
                 _buildDeleteAccount(isDark),
               ],
             ),
-          ),
+          )),
     );
   }
 
@@ -395,7 +396,7 @@ class _ProfilePageState extends State<ProfilePage>
                             Text(
                               _tierPrice(tier),
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w500,
                                 color: isDark ? Colors.grey[400] : Colors.grey[600])),
                             if (_tierSubprice(tier) case final String sub)
@@ -405,7 +406,7 @@ class _ProfilePageState extends State<ProfilePage>
                                 child: Text(
                                   sub,
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.w400,
                                     color: isDark ? Colors.grey[500] : Colors.grey[500]))),
                           ]),

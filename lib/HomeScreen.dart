@@ -420,7 +420,8 @@ class HomeScreenState extends State<HomeScreen>
           const SizedBox(width: 16),
         ],
       ),
-      body: RefreshIndicator(
+      body: SafeArea(
+        child: RefreshIndicator(
         onRefresh: loadProgress,
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -440,7 +441,7 @@ class HomeScreenState extends State<HomeScreen>
             ],
           ),
         ),
-      ),
+      )),
     );
   }
 
