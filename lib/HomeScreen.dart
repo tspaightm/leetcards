@@ -429,9 +429,9 @@ class HomeScreenState extends State<HomeScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               buildWelcomeSection(),
-              const SizedBox(height: 36),
+              const SizedBox(height: 24),
               buildTopicChips(),
-              const SizedBox(height: 36),
+              const SizedBox(height: 24),
               if (m_IsLoadingProgress)
                 buildProgressLoading()
               else if (m_ProgressError != null)
@@ -531,7 +531,7 @@ class HomeScreenState extends State<HomeScreen>
 
         if (!m_IsLoadingProgress && !_isSignedIn) ...[
           Padding(
-            padding: const EdgeInsets.only(bottom: 36),
+            padding: const EdgeInsets.only(bottom: 28),
             child: Row(
               children: [
                 Icon(Icons.lock_outline, size: 16, color: Colors.grey[500]),
@@ -570,7 +570,7 @@ class HomeScreenState extends State<HomeScreen>
               m_Difficulty: difficulty,
               m_Topic: m_SelectedTopic)))
           .then((_) => loadProgress())),
-        const SizedBox(height: 36),
+        const SizedBox(height: 32),
 
         _buildAlgorithmsSectionHeader(),
         const SizedBox(height: 12),
